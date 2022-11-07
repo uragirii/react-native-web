@@ -30,7 +30,24 @@ export type TextInputProps = {
   dir?: ?('auto' | 'ltr' | 'rtl'),
   disabled?: ?boolean,
   editable?: ?boolean,
+  enterKeyHint?:
+    | 'enter'
+    | 'done'
+    | 'go'
+    | 'next'
+    | 'previous'
+    | 'search'
+    | 'send',
   inputAccessoryViewID?: ?string,
+  inputMode?:
+    | 'decimal'
+    | 'email'
+    | 'none'
+    | 'numeric'
+    | 'search'
+    | 'tel'
+    | 'text'
+    | 'url',
   keyboardType?:
     | 'default'
     | 'email-address'
@@ -54,6 +71,7 @@ export type TextInputProps = {
   onSubmitEditing?: (e: any) => void,
   placeholder?: ?string,
   placeholderTextColor?: ?ColorValue,
+  readOnly?: ?boolean,
   returnKeyType?:
     | 'enter'
     | 'done'
@@ -62,6 +80,7 @@ export type TextInputProps = {
     | 'previous'
     | 'search'
     | 'send',
+  rows?: ?number,
   secureTextEntry?: ?boolean,
   selectTextOnFocus?: ?boolean,
   selection?: {|
