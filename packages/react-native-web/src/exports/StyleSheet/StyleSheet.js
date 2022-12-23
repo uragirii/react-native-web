@@ -21,6 +21,17 @@ const absoluteFillObject = {
 const absoluteFill: number = ReactNativePropRegistry.register(absoluteFillObject);
 
 const StyleSheet = {
+  sm:{
+    max:null,
+  },
+  md: {
+    min : null,
+    max: null,
+  },
+  lg : {
+    min: null,
+    max: null,
+  },
   absoluteFill,
   absoluteFillObject,
   compose(style1: any, style2: any): any {

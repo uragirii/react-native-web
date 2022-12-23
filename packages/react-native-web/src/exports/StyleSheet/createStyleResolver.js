@@ -20,7 +20,13 @@ import flattenArray from '../../modules/flattenArray';
 import flattenStyle from './flattenStyle';
 import I18nManager from '../I18nManager';
 import i18nStyle from './i18nStyle';
-import { atomic, classic, inline, stringifyValueWithProperty } from './compile';
+import {
+  atomic,
+  classic,
+  inline,
+  isMediaQueryProperty,
+  stringifyValueWithProperty
+} from './compile';
 import initialRules from './initialRules';
 import modality from './modality';
 import { STYLE_ELEMENT_ID, STYLE_GROUPS } from './constants';
@@ -174,14 +180,24 @@ export default function createStyleResolver() {
                 styleProp === 'animationKeyframes' ||
                 styleProp === 'placeholderTextColor' ||
                 styleProp === 'pointerEvents' ||
-                styleProp === 'scrollbarWidth'
+                styleProp === 'scrollbarWidth' ||
+                styleProp === 'sm' ||
+                styleProp === 'md' ||
+                styleProp === 'lg'
               ) {
-                const a = atomic({ [styleProp]: value });
+                const a = isMediaQueryProperty(styleProp)
+                  ? atomic(value, styleProp)
+                  : atomic({ [styleProp]: value });
                 Object.keys(a).forEach((key) => {
                   const { identifier, rules } = a[key];
                   props.classList.push(identifier);
                   rules.forEach((rule) => {
-                    sheet.insert(rule, STYLE_GROUPS.atomic);
+                    sheet.insert(
+                      rule,
+                      isMediaQueryProperty(styleProp)
+                        ? STYLE_GROUPS.custom.mediaQuery
+                        : STYLE_GROUPS.atomic
+                    );
                   });
                 });
               } else {

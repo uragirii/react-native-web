@@ -30,7 +30,8 @@ export const STYLE_GROUPS = {
     marginHorizontal: 2.1,
     marginVertical: 2.1,
     paddingHorizontal: 2.1,
-    paddingVertical: 2.1
+    paddingVertical: 2.1,
+    mediaQuery: 2.3
   }
 };
 
@@ -57,3 +58,5 @@ export const STYLE_SHORT_FORM_EXPANSIONS = {
 export const MONOSPACE_FONT_STACK = 'monospace,monospace';
 export const SYSTEM_FONT_STACK =
   '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
+
+export const MEDIA_QUERY_PROPS = ['sm','md','lg']

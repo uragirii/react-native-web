@@ -158,8 +158,9 @@ function getOrderedGroups(obj: { [key: number]: any }) {
 }
 
 const pattern = /\s*([,])\s*/g;
+const selectorRegex = /[.][\w\d-]*{/g
 function getSelectorText(cssText) {
-  const selector = cssText.split('{')[0].trim();
+  const selector = (cssText.match(selectorRegex)?.[0] ?? '').split('{')[0].trim();
   return selector !== '' ? selector.replace(pattern, '$1') : null;
 }
 

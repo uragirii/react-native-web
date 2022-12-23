@@ -12,6 +12,8 @@ import hash from '../../vendor/hash';
 import hyphenateStyleName from 'hyphenate-style-name';
 import normalizeValueWithProperty from './normalizeValueWithProperty';
 import prefixStyles, { prefixInlineStyles } from '../../modules/prefixStyles';
+import { MEDIA_QUERY_PROPS } from './constants';
+import StyleSheet from './StyleSheet';
 
 type Value = Object | Array<any> | string | number;
 type Style = { [key: string]: Value };
@@ -43,14 +45,57 @@ const cache = {
   }
 };
 
+export const isMediaQueryProperty = (prop: string): boolean => MEDIA_QUERY_PROPS.includes(prop);
+
+const generateMediaQuery = (screenSize: string) => {
+  switch (screenSize) {
+    case 'sm':
+      if (!StyleSheet.sm || !StyleSheet.sm.max) {
+        throw new Error('Small Screen max width is not set. Stylesheet.sm.max = 300');
+      }
+      return `@media screen and (max-width: ${StyleSheet.sm.max}px)`;
+    case 'md':
+      if (!StyleSheet.md || !StyleSheet.md.max || !StyleSheet.md.min) {
+        throw new Error('Medium Screen max/min width is not set. Stylesheet.md.min = 500');
+      }
+      return `@media screen and (min-width: ${StyleSheet.md.min}px) and (max-width: ${StyleSheet.md.max}px)`;
+
+    case 'lg':
+      if (!StyleSheet.lg || !StyleSheet.lg.min) {
+        throw new Error('Large Screen min width is not set. Stylesheet.lg.min = 800');
+      }
+      return `@media screen and (min-width: ${StyleSheet.lg.min}px)`;
+
+    default:
+      throw new Error('Invalid media query prefix');
+  }
+};
+
 /**
  * Compile style to atomic CSS rules.
  */
-export function atomic(style: Style): CompilerOutput {
+export function atomic(style: Style, mediaQueryPrefix: string | null = null): CompilerOutput {
   return Object.keys(style)
     .sort()
     .reduce((acc, property) => {
       const value = style[property];
+      // Dont cache in case of media queries
+      if (mediaQueryPrefix && value != null) {
+        const valueString = stringifyValueWithProperty(value, property);
+        const identifier = createIdentifier(`r-${mediaQueryPrefix}`, property, value);
+        const rules = createAtomicRules(identifier, property, value).map(
+          (rule) => `${generateMediaQuery(mediaQueryPrefix)} {${rule}}`
+        );
+        const cachedResult = cache.set(property, valueString, {
+          property,
+          value: stringifyValueWithProperty(value, property),
+          identifier,
+          rules
+        });
+        acc[identifier] = cachedResult;
+        return acc;
+      }
+
       if (value != null) {
         const valueString = stringifyValueWithProperty(value, property);
         const cachedResult = cache.get(property, valueString);
@@ -58,6 +103,10 @@ export function atomic(style: Style): CompilerOutput {
           const { identifier } = cachedResult;
           acc[identifier] = cachedResult;
         } else {
+          if (isMediaQueryProperty(property)) {
+            const mediaStyles = atomic(value, property);
+            return { ...acc, ...mediaStyles };
+          }
           const identifier = createIdentifier('r', property, value);
           const rules = createAtomicRules(identifier, property, value);
           const cachedResult = cache.set(property, valueString, {
@@ -119,7 +168,7 @@ export function stringifyValueWithProperty(value: Value, property: ?string): str
  * Create the Atomic CSS rules needed for a given StyleSheet rule.
  * Translates StyleSheet declarations to CSS.
  */
-function createAtomicRules(identifier: string, property, value): Rules {
+function createAtomicRules(identifier: string, property: string, value): Rules {
   const rules = [];
   const selector = `.${identifier}`;
 
@@ -178,6 +227,18 @@ function createAtomicRules(identifier: string, property, value): Rules {
       break;
     }
 
+    case 'md': {
+      // handle media query
+      // $FlowFixMe: Value is an obj
+      const val = Object.keys(value).map((subProp) => {
+        // $FlowFixMe
+        const normalizedValue = normalizeValueWithProperty(value[subProp], subProp);
+        const identifier = createIdentifier('r-md', subProp);
+        return createAtomicRules(identifier, subProp, normalizedValue);
+      });
+      return [`@media screen and (min-width: 480px) {${val.join(';')}}`];
+    }
+
     default: {
       const block = createDeclarationBlock({ [property]: value });
       rules.push(`${selector}${block}`);
@@ -190,6 +251,10 @@ function createAtomicRules(identifier: string, property, value): Rules {
 
 /**
  * Creates a CSS declaration block from a StyleSheet object.
+ * Also adds vendor prefix to them and fallback styles for each style
+ *
+ * @example : `{display:'flex'}` => `
+ *  {display: -webkit-flex; display:flex;}`
  */
 function createDeclarationBlock(style: Style) {
   const domStyle = prefixStyles(createReactDOMStyle(style));
